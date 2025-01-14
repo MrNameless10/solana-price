@@ -16,9 +16,11 @@ jobs:
       - name: Setup SSH key for deployment
         run: |
           mkdir -p ~/.ssh
-          echo "${{ secrets.SERVER_SSH_KEY }}" > ~/.ssh/id_rsa
+          cat <<'EOF' > ~/.ssh/id_rsa
+${{ secrets.SERVER_SSH_KEY }}
+EOF
           chmod 600 ~/.ssh/id_rsa
-          ssh-keyscan -H ${{ secrets.SERVER_IP }} >> ~/.ssh/known_hosts
+          ssh-keyscan -H "${{ secrets.SERVER_IP }}" >> ~/.ssh/known_hosts || true
 
       - name: Deploy to the server
         run: |
