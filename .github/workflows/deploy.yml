@@ -22,7 +22,7 @@ jobs:
 
       - name: Deploy to the server
         run: |
-          ssh -p 22 ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_IP }} << 'EOF'
+          ssh -p ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_IP }} << 'EOF'
           cd ~/Desktop/solana-price/discord-bot
           git pull origin main
           pm2 restart discord_bot
