@@ -118,10 +118,10 @@ async def update_price():
 
                     # Determine alert emoji and text based on price change direction
                     if price_change > 0:
-                        alert_emoji = '📈'
+                        alert_emoji = '↗'
                         change_type = 'increased'
                     else:
-                        alert_emoji = '📉'
+                        alert_emoji = '↘'
                         change_type = 'decreased'
 
                     embed = discord.Embed(
