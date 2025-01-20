@@ -83,17 +83,17 @@ async def update_price():
 
         # Determine the correct emoji based on the percentage change
         if percentage_change_24h > 0:
-            emoji = '📈'
+            emoji = '↗'
             sign = '+'
         elif percentage_change_24h < 0:
-            emoji = '📉'
+            emoji = '↘'
             sign = ''
         else:
             emoji = '➡️'
             sign = ''
 
         # Create the status text
-        status_text = f"Solana: ${current_price:.2f} {emoji} ({sign}{percentage_change_24h}%)"
+        status_text = f"${current_price:.2f} {emoji} ({sign}{percentage_change_24h}%)"
 
         # Update bot presence
         await bot.change_presence(activity=discord.Activity(type=discord.ActivityType.watching, name=status_text))
