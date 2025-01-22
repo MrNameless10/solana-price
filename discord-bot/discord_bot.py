@@ -15,6 +15,7 @@ logging.basicConfig(level=logging.INFO)
 
 # Set up intents
 intents = discord.Intents.default()
+intents.members = True
 intents.guilds = True
 intents.guild_messages = True
 
@@ -150,6 +151,25 @@ async def update_price():
 async def on_ready():
     logging.info(f'Logged in as {bot.user}')
     update_price.start()  # Start the background task to update price
+
+    # Send a message to a specific server and channel
+    target_guild_id = int(os.getenv('TARGET_GUILD_ID'))  
+    target_channel_id = int(os.getenv('TARGET_CHANNEL_ID')) 
+
+    try:
+        guild = bot.get_guild(target_guild_id)
+        if guild:
+            channel = guild.get_channel(target_channel_id)
+            if channel:
+                await channel.send("Hello! The bot is now online and ready to assist you.")
+                logging.info(f"Sent startup message to {guild.name} in {channel.name}")
+            else:
+                logging.warning("Target channel not found.")
+        else:
+            logging.warning("Target guild not found.")
+    except Exception as e:
+        logging.error(f"Error sending startup message: {e}")
+
     try:
         synced = await bot.tree.sync()
         logging.info(f"Synced {len(synced)} command(s).")

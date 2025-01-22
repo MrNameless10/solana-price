@@ -13,7 +13,7 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v3
 
-      - name: Setup SSH key for deployment github
+      - name: Setup SSH key for deployment
         run: |
           mkdir -p ~/.ssh
           echo "${{ secrets.SERVER_SSH_KEY }}" > ~/.ssh/id_rsa
@@ -25,5 +25,5 @@ jobs:
           ssh ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_IP }} << 'EOF'
           cd ~/Desktop/solana-price/discord-bot
           git pull origin main
-          pm2 restart discord_bot
+          pm2 reload ecosystem.config.js --update-env
           EOF
