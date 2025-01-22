@@ -152,24 +152,33 @@ async def on_ready():
     logging.info(f'Logged in as {bot.user}')
     update_price.start()  # Start the background task to update price
 
-    # Send a message to a specific server and channel
-    target_guild_id = int(os.getenv('TARGET_GUILD_ID'))  
-    target_channel_id = int(os.getenv('TARGET_CHANNEL_ID')) 
+    # Fetch the target guild and channel from environment variables
+    target_guild_id = int(os.getenv('TARGET_GUILD_ID'))  # Your server ID
+    target_channel_id = int(os.getenv('TARGET_CHANNEL_ID'))  # Your channel ID
+
+    # Prepare the log message with the list of servers
+    guilds_info = "\n".join([f"- {guild.name} (ID: {guild.id})" for guild in bot.guilds])
+    log_message = (
+        f"Hello! The bot is now online and ready to assist you.\n\n"
+        f"**Current Servers:**\n{guilds_info}\n\n"
+        f"Total Servers: {len(bot.guilds)}"
+    )
 
     try:
         guild = bot.get_guild(target_guild_id)
         if guild:
             channel = guild.get_channel(target_channel_id)
             if channel:
-                await channel.send("Hello! The bot is now online and ready to assist you.")
-                logging.info(f"Sent startup message to {guild.name} in {channel.name}")
+                await channel.send(log_message)  # Send the log message
+                logging.info(f"Sent startup log to {guild.name} in {channel.name}")
             else:
                 logging.warning("Target channel not found.")
         else:
             logging.warning("Target guild not found.")
     except Exception as e:
-        logging.error(f"Error sending startup message: {e}")
+        logging.error(f"Error sending startup log message: {e}")
 
+    # Sync application commands (slash commands)
     try:
         synced = await bot.tree.sync()
         logging.info(f"Synced {len(synced)} command(s).")
