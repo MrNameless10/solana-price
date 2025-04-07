@@ -99,36 +99,46 @@ async def update_price():
     current_price, percentage_change_24h = get_crypto_price('solana')
     floor_sol, avg_price_sol, listed_count, volume_sol = get_play_solana_stats()
 
-    if current_price is None or floor_sol is None:
-        status_text = "Price unavailable"
-    else:
-        if toggle:
-            # Display Solana price only
-            percentage_change_24h = round(percentage_change_24h, 2)
-            if percentage_change_24h > 0:
-                emoji = '↗'
-                sign = '+'
-            elif percentage_change_24h < 0:
-                emoji = '↘'
-                sign = ''
-            else:
-                emoji = '➡️'
-                sign = ''
-            status_text = f"Sol: ${current_price:.2f} {emoji} ({sign}{percentage_change_24h}%)"
+    # Prepare Solana price details for presence
+    if current_price is not None:
+        percentage_change_24h = round(percentage_change_24h, 2)
+        if percentage_change_24h > 0:
+            emoji = '↗'
+            sign = '+'
+        elif percentage_change_24h < 0:
+            emoji = '↘'
+            sign = ''
         else:
-            # Display play_solana NFT stats with floor price in SOL and USD, plus listed count
-            floor_usd = floor_sol * current_price
-            status_text = f"NFT: Floor {floor_sol:.2f} SOL (~${floor_usd:.2f}), {listed_count} listed"
+            emoji = '➡️'
+            sign = ''
+        sol_details = f"${current_price:.2f} {emoji} ({sign}{percentage_change_24h}%)"
+    else:
+        sol_details = "Price unavailable"
 
-    # Update the bot's nickname in all guilds (if permissions allow)
+    # Prepare Play Solana NFT stats details for presence
+    if current_price is not None and floor_sol is not None:
+        floor_usd = floor_sol * current_price
+        nft_details = f"Floor {floor_sol:.2f} SOL (~${floor_usd:.2f}), {listed_count} listed"
+    else:
+        nft_details = "Stats unavailable"
+
+    # Alternate between the two displays based on the toggle value
+    if toggle:
+        nickname = "Solana Price"
+        presence_text = sol_details
+    else:
+        nickname = "Player1"
+        presence_text = nft_details
+
+    # Update the bot's nickname in all guilds (requires proper permissions)
     for guild in bot.guilds:
         try:
-            await guild.me.edit(nick=status_text)
+            await guild.me.edit(nick=nickname)
         except Exception as e:
             logging.error(f"Could not update nickname in guild {guild.name}: {e}")
 
-    # Optionally update the bot's presence activity too
-    await bot.change_presence(activity=discord.Activity(type=discord.ActivityType.watching, name=status_text))
+    # Update the bot's activity presence to display the corresponding details
+    await bot.change_presence(activity=discord.Activity(type=discord.ActivityType.watching, name=presence_text))
 
     # Toggle for the next iteration
     toggle = not toggle
