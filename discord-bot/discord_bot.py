@@ -89,83 +89,49 @@ def get_play_solana_stats():
         logging.error(f"Error fetching play_solana stats: {e}")
         return None, None, None, None
 
-# --- Background Task to Update Bot Presence ---
+# Global toggle to alternate between displaying Solana price and NFT stats
+toggle = True
+
+# --- Background Task to Update Bot Nickname and Presence ---
 @tasks.loop(seconds=30)
 async def update_price():
-    global previous_price
+    global previous_price, toggle
     current_price, percentage_change_24h = get_crypto_price('solana')
     floor_sol, avg_price_sol, listed_count, volume_sol = get_play_solana_stats()
-    if current_price is not None and floor_sol is not None:
-        # Convert the play_solana floor price to USD
-        floor_usd = floor_sol * current_price
 
-        # Round the percentage change to two decimal places
-        percentage_change_24h = round(percentage_change_24h, 2)
-
-        # Determine the correct emoji based on the percentage change
-        if percentage_change_24h > 0:
-            emoji = '↗'
-            sign = '+'
-        elif percentage_change_24h < 0:
-            emoji = '↘'
-            sign = ''
-        else:
-            emoji = '➡️'
-            sign = ''
-
-        # Create the status text with both Solana and Play Solana NFT details.
-        status_text = (
-            f"Sol: ${current_price:.2f} {emoji} ({sign}{percentage_change_24h}%) | "
-            f"PlaySolana NFT: Floor {floor_sol:.2f} SOL (~${floor_usd:.2f}), {listed_count} listed"
-        )
-        await bot.change_presence(activity=discord.Activity(type=discord.ActivityType.watching, name=status_text))
-
-        # Check for a significant price change (only if previous_price is set)
-        if previous_price is not None:
-            price_change = ((current_price - previous_price) / previous_price) * 100
-            price_change = round(price_change, 2)
-
-            # Loop through all guilds and their settings for alerts
-            for guild_id, settings in list(alert_settings.items()):
-                channel_id = settings['channel_id']
-                threshold = settings.get('threshold', 1.0)  # Default threshold is 1.0% if not set
-
-                if abs(price_change) >= threshold:
-                    channel = bot.get_channel(channel_id)
-                    if channel is None:
-                        # Remove from alert_settings if channel no longer exists
-                        del alert_settings[guild_id]
-                        save_alert_settings()
-                        continue
-
-                    # Determine alert emoji and text based on price change direction
-                    if price_change > 0:
-                        alert_emoji = '↗'
-                        change_type = 'increased'
-                    else:
-                        alert_emoji = '↘'
-                        change_type = 'decreased'
-
-                    embed = discord.Embed(
-                        title="Solana Price Alert",
-                        description=(f"The price of Solana has {change_type} by {price_change}% in the last 30 seconds.\n"
-                                     f"Current price: ${current_price:.2f}\n\n"),
-                        color=discord.Color.green() if price_change > 0 else discord.Color.red(),
-                        timestamp=datetime.datetime.utcnow()
-                    )
-                    embed.set_footer(
-                        text="powered by Play Solana Team",
-                        icon_url="https://pbs.twimg.com/profile_images/1824202337553952768/c7AGrGNp_400x400.jpg"
-                    )
-                    await channel.send(embed=embed)
-        else:
-            # On the first run, just set previous_price without sending alerts
-            previous_price = current_price
-
-        # Update previous_price for next loop iteration
-        previous_price = current_price
+    if current_price is None or floor_sol is None:
+        status_text = "Price unavailable"
     else:
-        await bot.change_presence(activity=discord.Activity(type=discord.ActivityType.watching, name="Price unavailable"))
+        if toggle:
+            # Display Solana price only
+            percentage_change_24h = round(percentage_change_24h, 2)
+            if percentage_change_24h > 0:
+                emoji = '↗'
+                sign = '+'
+            elif percentage_change_24h < 0:
+                emoji = '↘'
+                sign = ''
+            else:
+                emoji = '➡️'
+                sign = ''
+            status_text = f"Sol: ${current_price:.2f} {emoji} ({sign}{percentage_change_24h}%)"
+        else:
+            # Display play_solana NFT stats with floor price in SOL and USD, plus listed count
+            floor_usd = floor_sol * current_price
+            status_text = f"NFT: Floor {floor_sol:.2f} SOL (~${floor_usd:.2f}), {listed_count} listed"
+
+    # Update the bot's nickname in all guilds (if permissions allow)
+    for guild in bot.guilds:
+        try:
+            await guild.me.edit(nick=status_text)
+        except Exception as e:
+            logging.error(f"Could not update nickname in guild {guild.name}: {e}")
+
+    # Optionally update the bot's presence activity too
+    await bot.change_presence(activity=discord.Activity(type=discord.ActivityType.watching, name=status_text))
+
+    # Toggle for the next iteration
+    toggle = not toggle
 
 # --- Event: Bot Ready ---
 @bot.event
