@@ -73,12 +73,32 @@ def get_crypto_price(coin_id):
         logging.error(f"An unexpected error occurred: {e}")
         return None, None
 
+# --- New Helper Function for Play Solana NFT Stats ---
+def get_play_solana_stats():
+    """Fetches stats for the play_solana NFT collection from Magic Eden API and converts prices to SOL."""
+    try:
+        response = requests.get("https://api-mainnet.magiceden.dev/v2/collections/play_solana/stats")
+        data = response.json()
+        # Convert lamports to SOL (1 SOL = 10^9 lamports)
+        floor_sol = data.get("floorPrice", 0) / 1e9
+        avg_price_sol = data.get("avgPrice24hr", 0) / 1e9
+        volume_sol = data.get("volumeAll", 0) / 1e9
+        listed_count = data.get("listedCount", 0)
+        return floor_sol, avg_price_sol, listed_count, volume_sol
+    except Exception as e:
+        logging.error(f"Error fetching play_solana stats: {e}")
+        return None, None, None, None
+
 # --- Background Task to Update Bot Presence ---
-@tasks.loop(minutes=5)
+@tasks.loop(seconds=30)
 async def update_price():
     global previous_price
     current_price, percentage_change_24h = get_crypto_price('solana')
-    if current_price is not None:
+    floor_sol, avg_price_sol, listed_count, volume_sol = get_play_solana_stats()
+    if current_price is not None and floor_sol is not None:
+        # Convert the play_solana floor price to USD
+        floor_usd = floor_sol * current_price
+
         # Round the percentage change to two decimal places
         percentage_change_24h = round(percentage_change_24h, 2)
 
@@ -93,10 +113,11 @@ async def update_price():
             emoji = '➡️'
             sign = ''
 
-        # Create the status text
-        status_text = f"${current_price:.2f} {emoji} ({sign}{percentage_change_24h}%)"
-
-        # Update bot presence
+        # Create the status text with both Solana and Play Solana NFT details.
+        status_text = (
+            f"Sol: ${current_price:.2f} {emoji} ({sign}{percentage_change_24h}%) | "
+            f"PlaySolana NFT: Floor {floor_sol:.2f} SOL (~${floor_usd:.2f}), {listed_count} listed"
+        )
         await bot.change_presence(activity=discord.Activity(type=discord.ActivityType.watching, name=status_text))
 
         # Check for a significant price change (only if previous_price is set)
@@ -127,7 +148,7 @@ async def update_price():
 
                     embed = discord.Embed(
                         title="Solana Price Alert",
-                        description=(f"The price of Solana has {change_type} by {price_change}% in the last 5 minutes.\n"
+                        description=(f"The price of Solana has {change_type} by {price_change}% in the last 30 seconds.\n"
                                      f"Current price: ${current_price:.2f}\n\n"),
                         color=discord.Color.green() if price_change > 0 else discord.Color.red(),
                         timestamp=datetime.datetime.utcnow()
