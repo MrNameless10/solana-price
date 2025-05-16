@@ -183,41 +183,41 @@ async def on_ready():
         logging.error(f"Failed to sync commands: {e}")
 
 # --- Slash Command: Setup Alerts ---
-@bot.tree.command(name="setup-alerts", description="Set up price alerts for Solana.")
-@discord.app_commands.describe(threshold="The percentage change threshold for alerts (e.g., 1.0 for 1%)")
-async def setup_warnings(interaction: discord.Interaction, threshold: float = 1.0):
-    await interaction.response.defer(ephemeral=True)
+# @bot.tree.command(name="setup-alerts", description="Set up price alerts for Solana.")
+# @discord.app_commands.describe(threshold="The percentage change threshold for alerts (e.g., 1.0 for 1%)")
+# async def setup_warnings(interaction: discord.Interaction, threshold: float = 1.0):
+#     await interaction.response.defer(ephemeral=True)
 
-    guild = interaction.guild
+#     guild = interaction.guild
 
-    if not guild.me.guild_permissions.manage_channels:
-        await interaction.followup.send("I need the 'Manage Channels' permission to set up warnings.", ephemeral=True)
-        return
+#     if not guild.me.guild_permissions.manage_channels:
+#         await interaction.followup.send("I need the 'Manage Channels' permission to set up warnings.", ephemeral=True)
+#         return
 
-    # Create or get a category for alerts
-    category_name = "Solana Alerts"
-    category = discord.utils.get(guild.categories, name=category_name)
-    if category is None:
-        category = await guild.create_category(category_name)
+#     # Create or get a category for alerts
+#     category_name = "Solana Alerts"
+#     category = discord.utils.get(guild.categories, name=category_name)
+#     if category is None:
+#         category = await guild.create_category(category_name)
 
-    # Create or get a text channel for price alerts
-    existing_channel = discord.utils.get(category.channels, name="price-alerts")
-    if existing_channel is None:
-        channel = await guild.create_text_channel("price-alerts", category=category)
-    else:
-        channel = existing_channel
+#     # Create or get a text channel for price alerts
+#     existing_channel = discord.utils.get(category.channels, name="price-alerts")
+#     if existing_channel is None:
+#         channel = await guild.create_text_channel("price-alerts", category=category)
+#     else:
+#         channel = existing_channel
 
-    # Save alert settings for the guild
-    guild_id = guild.id
-    alert_settings[guild_id] = {
-        'channel_id': channel.id,
-        'threshold': threshold
-    }
-    save_alert_settings()
+#     # Save alert settings for the guild
+#     guild_id = guild.id
+#     alert_settings[guild_id] = {
+#         'channel_id': channel.id,
+#         'threshold': threshold
+#     }
+#     save_alert_settings()
 
-    await interaction.followup.send(
-        f"Price alerts will be sent to {channel.mention} when Solana's price changes by {threshold}% or more.",
-        ephemeral=True)
+#     await interaction.followup.send(
+#         f"Price alerts will be sent to {channel.mention} when Solana's price changes by {threshold}% or more.",
+#         ephemeral=True)
 
 # --- Slash Command: Get Solana Price ---
 @bot.tree.command(name="sol", description="Get the current Solana price.")
